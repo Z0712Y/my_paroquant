@@ -1,0 +1,18 @@
+# pack-refs with: peeled fully-peeled sorted 
+b48d5d64accbff0aae28dac003688038cd8a1869 refs/remotes/origin/dev/train
+f8773c7578bba508a15f7ec21f0956624c948ec6 refs/remotes/origin/feat/moe-mlx-inference
+8e5ac77bff10e5a47fc5491eca0ab1c4370e3d85 refs/remotes/origin/legacy
+dae2cb60c7aea244ae214cd7c41c62ef37c435e1 refs/remotes/origin/main
+642aa3d74aba932e0c99ce7ae7bb0a945880c415 refs/tags/v0.1.10
+^dae2cb60c7aea244ae214cd7c41c62ef37c435e1
+2be645f61b8896485d64dbd3f8701e38d229319e refs/tags/v0.1.4
+66e8a59da99874f2911e466e52e34fea4aa7c07f refs/tags/v0.1.5
+^4105a454b56f9a64f1831357c7c46c406b2b5cc2
+6f1bcb1d76d4e507dc6b6a43d346236a58b2d3e0 refs/tags/v0.1.6
+^81811192719b68784914ced901a6dd026dc3b4b6
+4bec4870e8554126524ffc2e395729ae35118b16 refs/tags/v0.1.7
+^8f911ed7272b5e75f7a3b6d1625c05d4bccf82e9
+38e79fb6764ca63a1ce16d6c50d4c54371c6bf1a refs/tags/v0.1.8
+^d859f9130ac7607d20c03c23506852c135faf19e
+32c1f49d8bde984cb5a902d1a90fcd1b3de207d1 refs/tags/v0.1.9
+^437d94d8ac6729722e76ca03e5d0e992e77ced40
