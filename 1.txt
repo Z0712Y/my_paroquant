@@ -1,0 +1,99 @@
+本次改进在 ParoQuant-4 的贪心旋转量化框架上，深度融合 PrefixQuant 思想，实施了三合一方案：以任务特定的 Prefix Token 作为分布锚点，将其激活统计融入通道显著性分数以指导精准配对（方案1），在 Prefix-Stabilized 分布下逐层联合优化量化参数（方案3），并学习任务特定的角度残差解耦非推理与长思维链推理任务的最优旋转空间（方案5），最终通过角度烘焙实现同一套 4-bit 权重的任务特化推理。
+
+===========================（1）环境准备===========================
+#进入文件夹和虚拟环境
+cd /home/hhw/zy/paroquant-4 && conda activate paroquant
+#指定gpu
+export CUDA_VISIBLE_DEVICES=1
+# 离线模式（如使用本地数据集/模型）
+export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1 && export HF_HUB_OFFLINE=1 && export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+
+===========================（2）量化训练===========================
+# 监控脚本（修改两个脚本文件）
+# 记得修改输出！！！！！！修改输出！！！4bit.sh里面修改！！！
+conda activate paroquant && cd /home/hhw/zy/paroquant-4
+export CUDA_VISIBLE_DEVICES=1
+./run_4bit_with_log.sh
+
+
+===========================（3）生成可部署模型（带任务烘焙）===========================
+由于三合一 .pt 包含两套角度残差，需先按任务类型烘焙，再转换：
+=========Step A：烘焙 Short 角度（非推理任务）
+python3 scripts/bake_task_angles.py \
+    --pt-dir ./output/Qwen3-4B \
+    --task-type short \
+    --output-dir ./output/Qwen3-4B_baked_short
+
+=========Step B：烘焙 Long 角度（推理任务）
+python3 scripts/bake_task_angles.py \
+    --pt-dir ./output/Qwen3-4B \
+    --task-type long \
+    --output-dir ./output/Qwen3-4B_baked_long
+
+=========Step C：生成伪量化模型（精度验证用，存储与 FP16 一致）
+# Short-path 伪量化（BoolQ/ARC/HSwag 评测用）
+python3 scripts/pseudo_quant.py \
+    --model /home/hhw/zy/models/Qwen3-4B \
+    --result-dir ./output/Qwen3-4B_baked_short \
+    --output-path models/Qwen3-4B-PARO-pseudo-short
+# Long-path 伪量化（MMLU/GPQA/AIME 评测用）
+python3 scripts/pseudo_quant.py \
+    --model /home/hhw/zy/models/Qwen3-4B \
+    --result-dir ./output/Qwen3-4B_baked_long \
+    --output-path models/Qwen3-4B-PARO-pseudo-long
+
+=========Step D：生成真实量化模型（实际部署用，存储减少 3/4）
+# Short-path 真实量化
+python3 scripts/real_quant.py \
+    --model /home/hhw/zy/models/Qwen3-4B \
+    --result-dir ./output/Qwen3-4B_baked_short \
+    --output-path models/Qwen3-4B-PARO-short
+# Long-path 真实量化
+python3 scripts/real_quant.py \
+    --model /home/hhw/zy/models/Qwen3-4B \
+    --result-dir ./output/Qwen3-4B_baked_long \
+    --output-path models/Qwen3-4B-PARO-long
+
+
+===========================（4）实验评估===========================
+
+==========1.非推理任务（假量化，BoolQ、ARC-C、ARC-E、HSwag 等）==========
+#设置离线模式，使用本地数据集
+# 使用 Short-path 伪量化模型：
+export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1
+./experiments/tasks/non_reasoning.sh models/Qwen3-4B-PARO-pseudo-short
+
+==========2.推理任务（假量化，MMLU-Pro、GPQA、AIME 等）==========
+# 在新的虚拟环境执行推理任务，设置离线模式，使用本地数据集
+# 使用 Long-path 伪量化模型：
+conda activate paroquant-eval
+export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1
+
+# MMLU-PRO
+./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo-long 42 MMLU-PRO
+
+# AIME / GPQA（跑 3 个种子取平均）
+for seed in 42 0 1; do
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo-long $seed GPQA-Diamond
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo-long $seed AIME-2024
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo-long $seed AIME-2025
+done
+
+
+==========3.吞吐量测试（真量化）==========
+# Short-path 吞吐量
+./experiments/throughput/bench.sh models/Qwen3-4B-PARO-short
+# Long-path 吞吐量（可选对比）
+# ./experiments/throughput/bench.sh models/Qwen3-4B-PARO-long
+
+==========4.困惑度（假量化，Base 模型，标准 ParoQuant-4）==========
+cd /home/hhw/zy/paroquant-4
+conda activate paroquant
+export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1 && export HF_HUB_OFFLINE=1
+
+python scripts/eval_ppl.py \
+    --model models/Qwen3-4B-Base-PARO-pseudo \
+    --seqlen 8192 \
+    --seed 0 \
+    --datasets wikitext2 c4
