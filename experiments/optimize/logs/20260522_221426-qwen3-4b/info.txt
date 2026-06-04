@@ -1,0 +1,42 @@
+命令: bash experiments/optimize/4bit2.sh /home/hhw/zy/models/Qwen3-4B
+工作目录: /home/hhw/zy/paroquant-3
+启动时间: 2026-05-22 22:14:26
+
+========================================
+结构化配置参数
+========================================
+【模型配置】
+  模型路径:      /home/hhw/zy/models/Qwen3-4B
+  Batch Size:    8
+  Sequence Len:  2048
+  Cache Shards:  1
+
+【优化参数】
+  Epochs:        10 10
+  Group Size:    128
+  N-bit:         4
+  Num Rotations: 8
+  Params:        channel_scales:0.05,angles:0.05
+                 weight:1e-5,quantizer:1e-6
+  Selection Mode:greedy
+  Metric:        l2
+
+#============intactKV：在结构化日志中输出 IntactKV 配置=====
+【IntactKV 配置】
+  Pivot Aware:   否
+  Pivot Weight:  2.0
+  Pivot Mode:    prefix
+  Pivot Len:     16
+#============intactKV：在结构化日志中输出 IntactKV 配置=====
+
+【数据集】
+  Train:         wikitext2 c4 redpajama
+  Val:           pileval
+  Train Size:    1024
+  Val Size:      64
+
+【其他】
+  GPU:           1
+  Resume:        是
+  Seed:          0
+========================================

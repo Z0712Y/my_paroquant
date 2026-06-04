@@ -1,0 +1,98 @@
+本版本主要修改：贪心选择的基础上==>ParoQuant 的 KV Cache 虽未压缩，但 Pivot Tokens 的 KV 生成路径并未被保护。借鉴 IntactKV，核心改进方向是：隔离 Pivot Tokens 的 KV 生成过程，使其不受 4-bit 权重量化影响。
+
+===========================（1）环境准备===========================
+#指定gpu
+export CUDA_VISIBLE_DEVICES=1
+
+===========================（2）量化训练===========================
+# 监控脚本（修改两个脚本文件）
+# 记得修改输出！！！！！！修改输出！！！4bit.sh里面修改！！！
+conda activate paroquant && cd /home/hhw/zy/3-paroquant
+export CUDA_VISIBLE_DEVICES=1
+./run_4bit_with_log.sh
+
+===========================（3）生成可部署模型===========================
+# 伪量化用于验证精度，存储占用与FP16一致，pseudo quantization
+python3 scripts/pseudo_quant.py \
+    --model /home/hhw/zy/models/Qwen3-4B \
+    --result-dir output/Qwen3-4B \
+    --output-path models/Qwen3-4B-PARO-pseudo
+
+python3 scripts/pseudo_quant.py \
+    --model /home/hhw/zy/models/Qwen3-4B-Base \
+    --result-dir output/Qwen3-4B-Base \
+    --output-path models/Qwen3-4B-Base-PARO-pseudo
+
+# 真实量化，存储占用减少3/4，用于实际部署和推理，real quantization
+python3 scripts/real_quant.py \
+    --model /home/hhw/zy/models/Qwen3-4B \
+    --result-dir output/Qwen3-4B \
+    --output-path models/Qwen3-4B-PARO
+
+
+===========================（4）实验评估===========================
+
+==========1.非推理任务（假量化，BoolQ、ARC-C、ARC-E、HSwag 等）==========
+#设置离线模式，使用本地数据集
+export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1
+./experiments/tasks/non_reasoning.sh models/Qwen3-4B-PARO-pseudo
+
+==========2.推理任务（假量化，MMLU-Pro、GPQA、AIME 等）==========
+【对照组】
+conda activate paroquant-eval
+export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1
+# MMLU-PRO
+./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo 42 MMLU-PRO
+# AIME / GPQA（跑 3 个种子取平均）
+for seed in 42 0 1; do
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo $seed GPQA-Diamond
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo $seed AIME-2024
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo $seed AIME-2025
+done
+
+for seed in 42 0 1; do
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo $seed GPQA
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo $seed GSM8K
+    ./experiments/tasks/reasoning.sh models/Qwen3-4B-PARO-pseudo $seed MATH-500
+done && for seed in 42 0 1; do
+    ./experiments/tasks/reasoning.sh models/Qwen3-8B-PARO-pseudo $seed GPQA
+    ./experiments/tasks/reasoning.sh models/Qwen3-8B-PARO-pseudo $seed GSM8K
+    ./experiments/tasks/reasoning.sh models/Qwen3-8B-PARO-pseudo $seed MATH-500
+done && for seed in 42 0 1; do
+    ./experiments/tasks/reasoning.sh models/Qwen3-14B-PARO-pseudo $seed GPQA
+    ./experiments/tasks/reasoning.sh models/Qwen3-14B-PARO-pseudo $seed GSM8K
+    ./experiments/tasks/reasoning.sh models/Qwen3-14B-PARO-pseudo $seed MATH-500
+done
+
+【实验组】
+==========IntactKV 评估（transformers_backend，验证 Pivot KV 保护效果）
+conda activate paroquant
+./scripts/eval_reasoning_tasks_with_intactkv.sh models/Qwen3-4B-PARO-pseudo 42 MMLU-PRO
+for seed in 42 0 1; do
+    ./scripts/eval_reasoning_tasks_with_intactkv.sh models/Qwen3-4B-PARO-pseudo $seed GPQA-Diamond
+    ./scripts/eval_reasoning_tasks_with_intactkv.sh models/Qwen3-4B-PARO-pseudo $seed AIME-2024
+    ./scripts/eval_reasoning_tasks_with_intactkv.sh models/Qwen3-4B-PARO-pseudo $seed AIME-2025
+done
+#============intactKV：IntactKV 开关配置（修改这里即可）=====
+USE_INTACTKV="true"          # "true" 开 / "false" 关
+INTACTKV_PIVOT_LEN=32        # Pivot Token 保护长度
+#============intactKV：IntactKV 开关配置=====
+
+
+
+
+==========3.吞吐量测试（真量化）==========
+#============intactKV：带 IntactKV 的吞吐量测试=====
+# 第 2 个参数传 --use-intactkv，第 3 个参数传 pivot_len
+./experiments/throughput/bench.sh models/Qwen3-4B-PARO --use-intactkv 32
+#============intactKV：带 IntactKV 的吞吐量测试=====
+
+==========4.困惑度（假量化，qwen3用量化的base模型，fp16）==========
+cd /home/hhw/zy/paroquant-3 && conda activate paroquant
+export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1 && export HF_HUB_OFFLINE=1
+python scripts/eval_ppl.py \
+    --model models/Qwen3-4B-Base-PARO-pseudo \
+    --seqlen 8192 \
+    --seed 0 \
+    --datasets wikitext2 c4
+
