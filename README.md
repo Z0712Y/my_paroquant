@@ -1,5 +1,7 @@
 # ParoQuant: Pairwise Rotation Quantization for Efficient Reasoning LLM Inference
 
+ZY
+
 [Paper](https://arxiv.org/abs/2511.10645) |
 [Blog](https://paroquant.z-lab.ai) |
 [Models](https://huggingface.co/collections/z-lab/paroquant)
