@@ -24,7 +24,8 @@ if [ -z "$datasets" ]; then
     # ============================================
     # 新增数据集（样本量大，统计稳定性好）
     # ============================================
-    datasets=("MMLU-PRO" "GPQA" "GSM8K" "MATH-500")
+    # datasets=("MMLU-PRO" "GPQA" "GSM8K" "MATH-500")
+    datasets=("MMLU-PRO" "GPQA" "GSM8K" "MATH-500" "AIME-2024" "AIME-2025" "GPQA-Diamond" "MMLU-PRO")
 else
     datasets=($datasets)
 fi

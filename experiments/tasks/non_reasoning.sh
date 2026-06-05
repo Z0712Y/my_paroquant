@@ -2,8 +2,8 @@
 model=$1
 extra_args="${@:2}"
 # tasks=arc_challenge,arc_easy,boolq,hellaswag
-# tasks = arc_challenge,arc_easy,boolq,hellaswag,winogrande,piqa,openbookqa
-tasks=winogrande,piqa,openbookqa
+tasks=arc_challenge,arc_easy,boolq,hellaswag,winogrande,piqa,openbookqa
+# tasks=winogrande,piqa,openbookqa
 
 accelerate launch -m lm_eval \
     --model hf \
