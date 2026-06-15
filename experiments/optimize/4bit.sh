@@ -11,7 +11,7 @@ fi
 
 python3 optimize.py \
     --model $model_path \
-    --params "channel_scales:0.05,angles:0.05" "weight:1e-5,quantizer:1e-6" \
+    --params "channel_scales:0.025,angles:0.025" "weight:1e-5,quantizer:1e-6" \
     --epochs 10 10 \
     --group-size 128 \
     --n-bit 4 \
@@ -20,9 +20,9 @@ python3 optimize.py \
     --val-dataset pileval \
     --train-size 2048 \
     --validation-size 64 \
-    --batch-size 16 \
+    --batch-size 8 \
     --seqlen 2048 \
     --cache-shards $shards \
-    --output-dir ./output \
+    --output-dir ./output/ablation \
     --resume \
     --seed 0

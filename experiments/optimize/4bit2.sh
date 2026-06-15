@@ -19,7 +19,7 @@ fi
 
 # ==================== 配置变量（只需修改这里）====================
 # 这些变量会被结构化记录到日志中
-BATCH_SIZE=8
+BATCH_SIZE=16
 SEQLEN=2048
 NUM_ROTATIONS=8
 GROUP_SIZE=128
@@ -38,7 +38,7 @@ CHECKPOINTING_FLAG="否"  # 设置为"是"启用 --checkpointing，"否"则禁�
 SEED=0
 # [新增] 通道对选择策略: random(原随机洗牌) / greedy(基于显著性贪心选择)
 # 注意：greedy 模式下采用"显著性差异最大化"配对（高-低通道配对），而非简单相加
-SELECTION_MODE="greedy"
+SELECTION_MODE="random"
 # [新增] 显著性分数指标: l2 / maxabs / var，仅在 SELECTION_MODE=greedy 时生效
 METRIC="l2"
 

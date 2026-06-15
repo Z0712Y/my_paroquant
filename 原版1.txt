@@ -26,28 +26,29 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 ===========================（2）量化训练===========================
 # 监控脚本（修改两个脚本文件）
 # 记得修改输出！！！！！！修改输出！！！4bit2.sh里面修改！！！
-conda activate paroquant && cd /home/hhw/zy/1-paroquant
+conda activate paroquant && cd /home/hhw/zy/1-paroquant-serqv1
 export CUDA_VISIBLE_DEVICES=1
 ./run_4bit_with_log.sh
 
+ cat /home/hhw/zy/paroquant/experiments/optimize/logs/20260605_090300/exit_code.txt
 
 ===========================（3）生成可部署模型===========================
 # 伪量化用于验证精度，存储占用与FP16一致，pseudo quantization
 python3 scripts/pseudo_quant.py \
-    --model /home/hhw/zy/models/Qwen3-14B \
-    --result-dir output/Qwen3-14B \
-    --output-path models/Qwen3-14B-PARO-pseudo
+    --model /home/hhw/zy/models/Qwen3-1.7B \
+    --result-dir output/Qwen3-1.7B \
+    --output-path models/Qwen3-1.7B-PARO-pseudo
 
 python3 scripts/pseudo_quant.py \
-    --model /home/hhw/zy/models/Qwen3-14B-Base \
-    --result-dir output/Qwen3-14B-Base \
-    --output-path models/Qwen3-14B-Base-PARO-pseudo
+    --model /home/hhw/zy/models/Qwen3-1.7B-Base \
+    --result-dir output/Qwen3-1.7B-Base \
+    --output-path models/Qwen3-1.7B-Base-PARO-pseudo
 
 # 真实量化，存储占用减少3/4，用于实际部署和推理，real quantization
 python3 scripts/real_quant.py \
-    --model /home/hhw/zy/models/Qwen3-14B \
-    --result-dir output/Qwen3-14B \
-    --output-path models/Qwen3-14B-PARO
+    --model /home/hhw/zy/models/Qwen3-1.7B \
+    --result-dir output/Qwen3-1.7B \
+    --output-path models/Qwen3-1.7B-PARO
 
 
 ===========================（4）实验评估===========================
@@ -55,7 +56,7 @@ python3 scripts/real_quant.py \
 ==========1.非推理任务（假量化，BoolQ、ARC-C、ARC-E、HSwag 等）==========
 #设置离线模式，使用本地数据集
 export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1
-./experiments/tasks/non_reasoning.sh models/Qwen3-14B-PARO-pseudo
+./experiments/tasks/non_reasoning.sh models/Qwen3-1.7B-PARO-pseudo
 
 ==========2.推理任务（假量化，MMLU-Pro、GPQA、AIME 等）==========
 # 在新的虚拟环境执行推理任务，设置离线模式，使用本地数据集
@@ -64,28 +65,28 @@ conda activate paroquant-eval
 export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1
 
 # MMLU-PRO：只跑种子 42
-./experiments/tasks/reasoning.sh models/Qwen3-14B-PARO-pseudo 42 MMLU-PRO
+./experiments/tasks/reasoning.sh models/Qwen3-1.7B-PARO-pseudo 42 MMLU-PRO
 
 # 其他三个任务：跑种子 42, 0, 1，然后取平均
 for seed in 42 0 1; do
-    ./experiments/tasks/reasoning.sh models/Qwen3-14B-PARO-pseudo $seed GPQA-Diamond
-    ./experiments/tasks/reasoning.sh models/Qwen3-14B-PARO-pseudo $seed AIME-2024
-    ./experiments/tasks/reasoning.sh models/Qwen3-14B-PARO-pseudo $seed AIME-2025
+    ./experiments/tasks/reasoning.sh models/Qwen3-1.7B-PARO-pseudo $seed GPQA-Diamond
+    ./experiments/tasks/reasoning.sh models/Qwen3-1.7B-PARO-pseudo $seed AIME-2024
+    ./experiments/tasks/reasoning.sh models/Qwen3-1.7B-PARO-pseudo $seed AIME-2025
 done
 
 ==========3.吞吐量测试（真量化）==========
-./experiments/throughput/bench.sh models/Qwen3-14B-PARO
+./experiments/throughput/bench.sh models/Qwen3-1.7B-PARO
 
 ==========4.困惑度（假量化，qwen3用量化的base模型，fp16）==========
 # 虚拟环境，seqlen
 cd /home/hhw/zy/paroquant && conda activate paroquant
 export HF_DATASETS_OFFLINE=1 && export TRANSFORMERS_OFFLINE=1 && export HF_HUB_OFFLINE=1
 python scripts/eval_ppl.py \
-    --model models/Qwen3-14B-Base-PARO-pseudo \
+    --model models/Qwen3-1.7B-Base-PARO-pseudo \
     --seqlen 8192 \
     --seed 0 \
-    --datasets wikitext2 c4 > experiments/tasks/tasklogs/ppl_Qwen3-4B.log 2>&1
-
+    --datasets wikitext2 c4 
+    
 ===========================（5）baseline方法对比===========================
 
 
