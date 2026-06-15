@@ -19,8 +19,8 @@ fi
 
 # ==================== 配置变量（只需修改这里）====================
 # 这些变量会被结构化记录到日志中
-BATCH_SIZE=8
-SEQLEN=1024
+BATCH_SIZE=16
+SEQLEN=2048
 NUM_ROTATIONS=8
 GROUP_SIZE=128
 N_BIT=4
@@ -29,13 +29,14 @@ TRAIN_SIZE=1024
 VALIDATION_SIZE=64
 DATASETS="wikitext2 c4 redpajama"
 VAL_DATASET="pileval"
-PARAMS1="channel_scales:0.025,angles:0.025"
-PARAMS2="weight:5e-6,quantizer:5e-7"
+PARAMS1="channel_scales:0.05,angles:0.05"
+PARAMS2="weight:1e-5,quantizer:1e-6"
 RESUME_FLAG="是"
 CHECKPOINTING_FLAG="是"  # 设置为"是"启用 --checkpointing，"否"则禁用
 SEED=0
 
 # channel_scales:0.025,angles:0.025" "weight:5e-6,quantizer:5e-7
+# channel_scales:0.05,angles:0.05" "weight:1e-5,quantizer:1e-6
 # --bacth size 16 \         # 改成4
 # --seqlen 2048 \           # 改为 512
 # --checkpointing true \    # 新增
@@ -161,7 +162,7 @@ python3 optimize.py \
     --batch-size "$BATCH_SIZE" \
     --seqlen "$SEQLEN" \
     --cache-shards "$shards" \
-    --output-dir ./output/qwen3-14b-8bz \
+    --output-dir ./output \
     --resume \
     --seed "$SEED" \
     $CHECKPOINTING_ARG

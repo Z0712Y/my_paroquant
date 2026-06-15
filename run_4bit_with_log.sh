@@ -6,7 +6,7 @@
 # 修改以下变量即可更换模型或脚本
 # 外部配置优先级 > 脚本内部配置，但只执行脚本时会安全地使用默认值。
 SCRIPT="experiments/optimize/4bit2.sh"  # 要运行的脚本
-MODEL="/home/hhw/zy/models/Qwen3-14B-Base"            # 模型路径
+MODEL="/home/hhw/zy/models/Qwen3-1.7B-Base"            # 模型路径
 # GPU_ID="2"                             # 指定使用的 GPU
 # ==================================================
 
@@ -17,7 +17,7 @@ MODEL="/home/hhw/zy/models/Qwen3-14B-Base"            # 模型路径
 if [ -z "$_IN_NOHUP" ]; then
     export _IN_NOHUP=1
     
-    LOG_DIR="/home/hhw/zy/backup-paroquant/experiments/optimize/logs/$(date +%Y%m%d_%H%M%S)"
+    LOG_DIR="/home/hhw/zy/0-backup-paroquant/experiments/optimize/logs/$(date +%Y%m%d_%H%M%S)"
     mkdir -p "$LOG_DIR"
     
     echo "========================================"
